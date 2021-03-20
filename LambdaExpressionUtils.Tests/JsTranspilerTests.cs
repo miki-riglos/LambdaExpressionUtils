@@ -7,6 +7,12 @@ using System.Linq.Expressions;
 
 namespace LambdaExpressionsTests
 {
+    public enum Color
+    {
+        Red,
+        Blue
+    }
+
     public class BusinessUnit
     {
         public int BusinessUnitId { get; set; }
@@ -22,6 +28,7 @@ namespace LambdaExpressionsTests
         public BusinessUnit BusinessUnit { get; set; }
         public bool Active { get; set; }
         public DateTime CreatedAt { get; set; }
+        public Color Color { get; set; }
     }
 
     [TestClass]
@@ -114,7 +121,10 @@ namespace LambdaExpressionsTests
                 wh => DateTime.Now,
                 wh => DateTime.Today,
                 wh => wh.CreatedAt > DateTime.Now,
-                wh => wh.CreatedAt > DateTime.Today
+                wh => wh.CreatedAt > DateTime.Today,
+                wh => wh.Color == Color.Red,
+                wh => wh.Color == Color.Blue,
+                wh => wh == null || wh.Color == Color.Blue
             };
             var expectedJsList = new List<string>() {
                 "function(wh) { return wh.BusinessUnit.Name; }",
@@ -125,7 +135,10 @@ namespace LambdaExpressionsTests
                 "function(wh) { return new Date(); }",
                 "function(wh) { return (function() { var today = new Date(); today.setHours(0, 0, 0, 0); return today; })(); }",
                 "function(wh) { return (wh.CreatedAt > new Date()); }",
-                "function(wh) { return (wh.CreatedAt > (function() { var today = new Date(); today.setHours(0, 0, 0, 0); return today; })()); }"
+                "function(wh) { return (wh.CreatedAt > (function() { var today = new Date(); today.setHours(0, 0, 0, 0); return today; })()); }",
+                "function(wh) { return (wh.Color === 0); }",
+                "function(wh) { return (wh.Color === 1); }",
+                "function(wh) { return ((wh === null) || (wh.Color === 1)); }"
             };
 
             foreach (var pair in expressions.Zip(expectedJsList, (expression, expectedJs) => new { Expression = expression, ExpectedJs = expectedJs })) {

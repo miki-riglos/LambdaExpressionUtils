@@ -86,9 +86,17 @@ namespace LambdaExpressionUtils
             return base.VisitMember(node);
         }
 
+        protected override Expression VisitParameter(ParameterExpression node) {
+            _jsBuilder.Append(node.Name);
+            return node;
+        }
+
         protected override Expression VisitConstant(ConstantExpression node) {
             string value;
-            if (_typeConverters.ContainsKey(node.Value.GetType())) {
+            if (node.Value == null) {
+                value = "null";
+            }
+            else if (_typeConverters.ContainsKey(node.Value.GetType())) {
                 value = _typeConverters[node.Value.GetType()](node.Value);
             }
             else {
