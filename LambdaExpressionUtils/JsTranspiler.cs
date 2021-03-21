@@ -106,6 +106,15 @@ namespace LambdaExpressionUtils
             return node;
         }
 
+        protected override Expression VisitConditional(ConditionalExpression node) {
+            Visit(node.Test);
+            _jsBuilder.Append(" ? ");
+            Visit(node.IfTrue);
+            _jsBuilder.Append(" : ");
+            Visit(node.IfFalse);
+            return node;
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression node) {
             if (node.Type == typeof(string) && node.Method.Name == nameof(string.Format)) {
                 return visitStringFormatCall(node);

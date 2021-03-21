@@ -86,7 +86,8 @@ namespace LambdaExpressionsTests
                 wh => $"{wh.Name}-{wh.BusinessUnit.BusinessUnitId}-{wh.CreatedAt}-{wh.WarehouseId}",
                 wh => $"{wh.Name}-{wh.CreatedAt}-{wh.WarehouseId}",
                 wh => string.Format("{0}-{1}-{2}-{3}", wh.Name, wh.BusinessUnit.Name, wh.CreatedAt, wh.WarehouseId),
-                wh => string.Format("{0}-{0}-{1}-{2}", wh.Name, wh.BusinessUnit.Name, wh.CreatedAt)
+                wh => string.Format("{0}-{0}-{1}-{2}", wh.Name, wh.BusinessUnit.Name, wh.CreatedAt),
+                wh => wh.WarehouseId > 1 ? wh.Name : wh.BusinessUnit.Name
             };
             var expectedJsList = new List<string>() {
                 "function(wh) { return wh.Name; }",
@@ -100,7 +101,8 @@ namespace LambdaExpressionsTests
                 "function(wh) { return (wh.Name + '-' + wh.BusinessUnit.BusinessUnitId + '-' + wh.CreatedAt + '-' + wh.WarehouseId); }",
                 "function(wh) { return (wh.Name + '-' + wh.CreatedAt + '-' + wh.WarehouseId); }",
                 "function(wh) { return (wh.Name + '-' + wh.BusinessUnit.Name + '-' + wh.CreatedAt + '-' + wh.WarehouseId); }",
-                "function(wh) { return (wh.Name + '-' + wh.Name + '-' + wh.BusinessUnit.Name + '-' + wh.CreatedAt); }"
+                "function(wh) { return (wh.Name + '-' + wh.Name + '-' + wh.BusinessUnit.Name + '-' + wh.CreatedAt); }",
+                "function(wh) { return (wh.WarehouseId > 1) ? wh.Name : wh.BusinessUnit.Name; }"
             };
 
             foreach (var pair in returnStringLambdas.Zip(expectedJsList, (lambda, expectedJs) => new { Lambda = lambda, ExpectedJs = expectedJs })) {
