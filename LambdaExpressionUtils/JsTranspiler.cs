@@ -34,7 +34,7 @@ namespace LambdaExpressionUtils
         };
 
 
-        private StringBuilder _jsBuilder = new StringBuilder();
+        protected StringBuilder _jsBuilder = new StringBuilder();
 
         public List<string> Parameters { get; private set; }
         public string Body { get; private set; }
