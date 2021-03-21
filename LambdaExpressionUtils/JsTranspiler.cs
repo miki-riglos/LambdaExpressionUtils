@@ -122,7 +122,7 @@ namespace LambdaExpressionUtils
             return base.VisitMethodCall(node);
         }
 
-        private Expression visitStringFormatCall(MethodCallExpression node) {
+        protected List<Expression> getStringFormatCallArguments(MethodCallExpression node) {
             // string.Format("{0} - {1}", obj1, obj2) or $"{obj1} - {obj1}" => (obj1 + ' - ' + obj2)
             // ... Arguments[0] = "{0} - {1}"   or  Arguments[0] = "{0} - {1}"
             // ... Arguments[1] = obj1              Arguments[1].Arguments[0] = obj1
@@ -135,7 +135,11 @@ namespace LambdaExpressionUtils
             else {
                 arguments = node.Arguments.Skip(1).ToList();
             }
+            return arguments;
+        }
 
+        protected virtual Expression visitStringFormatCall(MethodCallExpression node) {
+            List<Expression> arguments = getStringFormatCallArguments(node);
             var template = (node.Arguments.First() as ConstantExpression).Value.ToString();
             var segments = template.GetSegments();
 
