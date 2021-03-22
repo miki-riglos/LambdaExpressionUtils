@@ -14,5 +14,5 @@ var parameters = jsTranspiler.Parameters;
 // => [wh]
 
 var body = jsTranspiler.Body;	        
-// => ((wh.WarehouseId > 1) && (wh.WarehouseId < 10)) }
+// => ((wh.WarehouseId > 1) && (wh.WarehouseId < 10))
 ```

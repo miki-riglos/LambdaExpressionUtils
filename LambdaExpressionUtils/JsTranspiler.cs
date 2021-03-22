@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -8,49 +7,27 @@ namespace LambdaExpressionUtils
 {
     public class JsTranspiler : ExpressionVisitor
     {
-        private static readonly Dictionary<ExpressionType, string> _logicalOperators = new Dictionary<ExpressionType, string> {
-            [ExpressionType.Not] = "!",
-            [ExpressionType.Convert] = "",
-            [ExpressionType.GreaterThan] = ">",
-            [ExpressionType.GreaterThanOrEqual] = ">=",
-            [ExpressionType.LessThan] = "<",
-            [ExpressionType.LessThanOrEqual] = "<=",
-            [ExpressionType.Equal] = "===",
-            [ExpressionType.NotEqual] = "!==",
-            [ExpressionType.AndAlso] = "&&",
-            [ExpressionType.OrElse] = "||",
-            [ExpressionType.Add] = "+"
-        };
 
-        private static readonly Dictionary<Type, Func<object, string>> _typeConverters = new Dictionary<Type, Func<object, string>> {
-            [typeof(string)] = value => $"'{value}'",
-            [typeof(DateTime)] = value => $"datetime'{((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}'",
-            [typeof(bool)] = value => value.ToString().ToLower()
-        };
-
-        private static readonly Dictionary<string, string> _memberConverters = new Dictionary<string, string> {
-            [$"{typeof(DateTime).Name}.{nameof(DateTime.Now)}"] = "new Date()",
-            [$"{typeof(DateTime).Name}.{nameof(DateTime.Today)}"] = "(function() { var today = new Date(); today.setHours(0, 0, 0, 0); return today; })()",
-        };
-
-
-        protected StringBuilder _jsBuilder = new StringBuilder();
+        private readonly JsTranspilerOptions _options;
+        private StringBuilder _jsBuilder = new StringBuilder();
 
         public List<string> Parameters { get; private set; }
         public string Body { get; private set; }
 
-        public JsTranspiler(LambdaExpression lambdaExpression) {
+        public JsTranspiler(LambdaExpression lambdaExpression, JsTranspilerOptions options = null) {
+            _options = options ?? JsTranspilerOptions.Default;
+
             Parameters = lambdaExpression.Parameters.Select(p => p.Name).ToList();
 
             Visit(lambdaExpression.Body);
-            Body = _jsBuilder.ToString();
+            Body = string.Format(_options.BodyFormat, _jsBuilder.ToString());
         }
 
         public string GetJs() => $"function({string.Join(", ", Parameters)}) {{ return {Body}; }}";
 
         protected override Expression VisitUnary(UnaryExpression node) {
-            if (_logicalOperators.ContainsKey(node.NodeType)) {
-                _jsBuilder.Append($"{_logicalOperators[node.NodeType]}");
+            if (_options.Operators.ContainsKey(node.NodeType)) {
+                _jsBuilder.AppendFormat(_options.UnaryFormat, _options.Operators[node.NodeType]);
                 Visit(node.Operand);
                 return node;
             }
@@ -58,11 +35,16 @@ namespace LambdaExpressionUtils
         }
 
         protected override Expression VisitBinary(BinaryExpression node) {
-            _jsBuilder.Append("(");
+            _jsBuilder.AppendFormat(_options.BinaryBeforeLeftFormat);
             Visit(node.Left);
-            _jsBuilder.Append($" {_logicalOperators[node.NodeType]} ");
+            _jsBuilder.AppendFormat(_options.BinaryAfterLeftFormat);
+
+            _jsBuilder.AppendFormat(_options.BinaryOperatorFormat, _options.Operators[node.NodeType]);
+
+            _jsBuilder.AppendFormat(_options.BinaryBeforeRightFormat);
             Visit(node.Right);
-            _jsBuilder.Append(")");
+            _jsBuilder.AppendFormat(_options.BinaryAfterRightFormat);
+
             return node;
         }
 
@@ -76,18 +58,18 @@ namespace LambdaExpressionUtils
                     parameterName = (runningExpression.Expression as ParameterExpression)?.Name;
                     runningExpression = runningExpression.Expression as MemberExpression;
                 }
-                _jsBuilder.Append($"{parameterName}.{propertyName}");
+                _jsBuilder.AppendFormat(_options.MemberFormat, parameterName, propertyName);
                 return node;
             }
-            else if (_memberConverters.ContainsKey($"{node.Member.DeclaringType.Name}.{node.Member.Name}")) {
-                _jsBuilder.Append(_memberConverters[$"{node.Member.DeclaringType.Name}.{node.Member.Name}"]);
+            else if (_options.NonExpressionMembers.ContainsKey($"{node.Member.DeclaringType.Name}.{node.Member.Name}")) {
+                _jsBuilder.Append(_options.NonExpressionMembers[$"{node.Member.DeclaringType.Name}.{node.Member.Name}"]);
                 return node;
             }
             return base.VisitMember(node);
         }
 
         protected override Expression VisitParameter(ParameterExpression node) {
-            _jsBuilder.Append(node.Name);
+            _jsBuilder.AppendFormat(_options.ParameterFormat, node.Name);
             return node;
         }
 
@@ -96,22 +78,24 @@ namespace LambdaExpressionUtils
             if (node.Value == null) {
                 value = "null";
             }
-            else if (_typeConverters.ContainsKey(node.Value.GetType())) {
-                value = _typeConverters[node.Value.GetType()](node.Value);
+            else if (_options.TypeConverters.ContainsKey(node.Value.GetType())) {
+                value = _options.TypeConverters[node.Value.GetType()](node.Value);
             }
             else {
                 value = node.Value.ToString();
             }
-            _jsBuilder.Append(value);
+            _jsBuilder.AppendFormat(_options.ConstantFormat, value);
             return node;
         }
 
         protected override Expression VisitConditional(ConditionalExpression node) {
+            _jsBuilder.AppendFormat(_options.ConditionalBeforeTestFormat);
             Visit(node.Test);
-            _jsBuilder.Append(" ? ");
+            _jsBuilder.AppendFormat(_options.ConditionalAfterTestFormat);
             Visit(node.IfTrue);
-            _jsBuilder.Append(" : ");
+            _jsBuilder.AppendFormat(_options.ConditionalAfterIfTrueFormat);
             Visit(node.IfFalse);
+            _jsBuilder.AppendFormat(_options.ConditionalAfterIfFalseFormat);
             return node;
         }
 
@@ -143,22 +127,38 @@ namespace LambdaExpressionUtils
             var template = (node.Arguments.First() as ConstantExpression).Value.ToString();
             var segments = template.GetSegments();
 
-            _jsBuilder.Append("(");
+            _jsBuilder.AppendFormat(_options.StringFormatCallBeforeFormat);
             foreach (var segment in segments) {
                 if (segment != segments.First()) {
-                    _jsBuilder.Append(" + ");
+                    _jsBuilder.AppendFormat(_options.StringFormatCallAfter1stLoopFormat);
                 }
                 if (!segment.IsMatch) {
-                    _jsBuilder.Append($"'{segment.Value}'");
+                    _jsBuilder.AppendFormat(_options.StringFormatCallNoMatchInLoopFormat, segment.Value);
                 }
                 else {
                     var index = int.Parse(segment.Value.Substring(1, segment.Value.Length - 2));
                     Visit(arguments[index]);
                 }
             }
-            _jsBuilder.Append(")");
+            _jsBuilder.AppendFormat(_options.StringFormatCallAfterFormat);
 
             return node;
+        }
+
+        // static helpers
+        static public string GetJs(LambdaExpression lambdaExpression) {
+            var jsTranspiler = new JsTranspiler(lambdaExpression);
+            return jsTranspiler.GetJs();
+        }
+
+        static public string GetTemplate(LambdaExpression lambdaExpression) {
+            var jsTranspiler = new JsTranspiler(lambdaExpression, JsTranspilerOptions.Template);
+            return jsTranspiler.Body;
+        }
+
+        static public string GetJsWithValueGetter(LambdaExpression lambdaExpression) {
+            var jsTranspiler = new JsTranspiler(lambdaExpression, JsTranspilerOptions.ValueGetter);
+            return jsTranspiler.GetJs();
         }
     }
 }
