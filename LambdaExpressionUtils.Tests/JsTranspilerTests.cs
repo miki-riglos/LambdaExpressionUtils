@@ -147,6 +147,7 @@ namespace LambdaExpressionsTests
             }
         }
 
+        [TestMethod]
         public void TemplateStringTest() {
             var returnStringLambdas = new List<Expression<Func<Warehouse, string>>>() {
                 wh => wh.Name,

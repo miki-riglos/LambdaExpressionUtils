@@ -100,7 +100,7 @@ namespace LambdaExpressionUtils
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node) {
-            if (node.Type == typeof(string) && node.Method.Name == nameof(string.Format)) {
+            if (node.Method.DeclaringType == typeof(string) && node.Method.Name == nameof(string.Format)) {
                 return visitStringFormatCall(node);
             }
             return base.VisitMethodCall(node);
