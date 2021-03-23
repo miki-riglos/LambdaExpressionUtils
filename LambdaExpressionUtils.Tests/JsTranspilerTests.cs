@@ -1,11 +1,10 @@
-﻿using LambdaExpressionUtils;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace LambdaExpressionsTests
+namespace LambdaExpressionUtils.Tests
 {
     public enum Color
     {
@@ -199,8 +198,8 @@ namespace LambdaExpressionsTests
             var expectedJsList = new List<string>() {
                 "function(wh) { return wh.WarehouseId.value(); }",
                 "function(wh) { return wh.CreatedAt.value(); }",
-                "function(wh) { return (wh.WarehouseId.value() * 1); }",
-                "function(wh) { return (wh.WarehouseId.value() * wh.BusinessUnit.BusinessUnitId.value()); }",
+                "function(wh) { return ((wh.WarehouseId.value() * 100) * (1 * 100) / (100 * 100)); }",
+                "function(wh) { return ((wh.WarehouseId.value() * 100) * (wh.BusinessUnit.BusinessUnitId.value() * 100) / (100 * 100)); }",
                 "function(wh) { return ((wh.WarehouseId.value() > 1) ? wh.Name.value() : 'Zero'); }",
                 "function(wh) { return ((wh.WarehouseId.value() > 1) ? wh.Name.value() : (wh.Name.value() + ' is Zero')); }"
             };

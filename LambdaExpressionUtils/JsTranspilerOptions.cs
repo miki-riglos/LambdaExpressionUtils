@@ -4,9 +4,18 @@ using System.Linq.Expressions;
 
 namespace LambdaExpressionUtils
 {
+    public class BinaryFormat
+    {
+        public string BeforeLeft { get; set; } = "(";
+        public string AfterLeft { get; set; } = "";
+        public string Operator { get; set; } = " {0} ";   // operator
+        public string BeforeRight { get; set; } = "";
+        public string AfterRight { get; set; } = ")";
+    }
+
     public class JsTranspilerOptions
     {
-        public Dictionary<ExpressionType, string> Operators { get; protected set; } = new Dictionary<ExpressionType, string>() {
+        public Dictionary<ExpressionType, string> Operators { get; set; } = new Dictionary<ExpressionType, string>() {
             [ExpressionType.Not] = "!",
             [ExpressionType.Convert] = "",
             [ExpressionType.GreaterThan] = ">",
@@ -23,13 +32,22 @@ namespace LambdaExpressionUtils
             [ExpressionType.Divide] = "/"
         };
 
-        public Dictionary<Type, Func<object, string>> TypeConverters { get; protected set; } = new Dictionary<Type, Func<object, string>> {
+        public Dictionary<ExpressionType, BinaryFormat> BinaryFormats { get; set; } = new Dictionary<ExpressionType, BinaryFormat>() {
+            [ExpressionType.Multiply] = new BinaryFormat() {
+                BeforeLeft = "((",
+                AfterLeft = " * 100)",
+                BeforeRight = "(",
+                AfterRight = " * 100) / (100 * 100))"
+            }
+        };
+
+        public Dictionary<Type, Func<object, string>> TypeConverters { get; protected set; } = new Dictionary<Type, Func<object, string>>() {
             [typeof(string)] = value => $"'{value}'",
             [typeof(DateTime)] = value => $"datetime'{((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}'",
             [typeof(bool)] = value => value.ToString().ToLower()
         };
 
-        public Dictionary<string, string> NonExpressionMembers { get; protected set; } = new Dictionary<string, string> {
+        public Dictionary<string, string> NonExpressionMembers { get; protected set; } = new Dictionary<string, string>() {
             [$"{typeof(DateTime).Name}.{nameof(DateTime.Now)}"] = "new Date()",
             [$"{typeof(DateTime).Name}.{nameof(DateTime.Today)}"] = "(function() { var today = new Date(); today.setHours(0, 0, 0, 0); return today; })()",
         };
@@ -38,11 +56,14 @@ namespace LambdaExpressionUtils
 
         public string UnaryFormat { get; protected set; } = "{0}";              // operator
 
-        public string BinaryBeforeLeftFormat { get; protected set; } = "(";
-        public string BinaryAfterLeftFormat { get; protected set; } = "";
-        public string BinaryOperatorFormat { get; protected set; } = " {0} ";   // operator
-        public string BinaryBeforeRightFormat { get; protected set; } = "";
-        public string BinaryAfterRightFormat { get; protected set; } = ")";
+        public BinaryFormat BinaryFormat { get; protected set; } = new BinaryFormat();
+
+        public BinaryFormat GetBinaryFormat(ExpressionType nodeType) {
+            if (BinaryFormats.ContainsKey(nodeType)) {
+                return BinaryFormats[nodeType];
+            }
+            return BinaryFormat;
+        }
 
         public string MemberFormat { get; protected set; } = "{0}.{1}";         // parameter name, property name/path
 

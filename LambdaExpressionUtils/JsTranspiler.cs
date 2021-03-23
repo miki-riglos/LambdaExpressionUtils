@@ -35,15 +35,17 @@ namespace LambdaExpressionUtils
         }
 
         protected override Expression VisitBinary(BinaryExpression node) {
-            _jsBuilder.AppendFormat(_options.BinaryBeforeLeftFormat);
+            var binaryFormat = _options.GetBinaryFormat(node.NodeType);
+
+            _jsBuilder.AppendFormat(binaryFormat.BeforeLeft);
             Visit(node.Left);
-            _jsBuilder.AppendFormat(_options.BinaryAfterLeftFormat);
+            _jsBuilder.AppendFormat(binaryFormat.AfterLeft);
 
-            _jsBuilder.AppendFormat(_options.BinaryOperatorFormat, _options.Operators[node.NodeType]);
+            _jsBuilder.AppendFormat(binaryFormat.Operator, _options.Operators[node.NodeType]);
 
-            _jsBuilder.AppendFormat(_options.BinaryBeforeRightFormat);
+            _jsBuilder.AppendFormat(binaryFormat.BeforeRight);
             Visit(node.Right);
-            _jsBuilder.AppendFormat(_options.BinaryAfterRightFormat);
+            _jsBuilder.AppendFormat(binaryFormat.AfterRight);
 
             return node;
         }
