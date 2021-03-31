@@ -43,7 +43,7 @@ namespace LambdaExpressionUtils
 
         public Dictionary<Type, Func<object, string>> TypeConverters { get; protected set; } = new Dictionary<Type, Func<object, string>>() {
             [typeof(string)] = value => $"'{value}'",
-            [typeof(DateTime)] = value => $"datetime'{((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}'",
+            [typeof(DateTime)] = value => $"new Date('{((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fff")}')",
             [typeof(bool)] = value => value.ToString().ToLower()
         };
 
